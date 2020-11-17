@@ -7,7 +7,7 @@
              placeholder="currentPage">
     </b-input>
     <p>perPage</p>
-    <b-input @input="calculNbPage" class="textinput" type="text"
+    <b-input @input="searchBase" class="textinput" type="text"
              v-model="perPage"
              placeholder="perPage">
     </b-input>
@@ -33,7 +33,7 @@
     <b-pagination
       :total="this.totalElem"
       v-model="currentPage"
-      @change="this.changePerPage"
+      @change="this.searchBase"
       :per-page="perPage"
       aria-next-label="Next page"
       aria-previous-label="Previous page"
@@ -110,13 +110,7 @@
         nbpage: 0,
         currentPage: 1,
 
-        data: [
-          {'id': 1, 'first_name': 'Jesse', 'last_name': 'Simmons', 'date': '2016-10-15 13:43:27', 'gender': 'Male'},
-          {'id': 2, 'first_name': 'John', 'last_name': 'Jacobs', 'date': '2016-12-15 06:00:53', 'gender': 'Male'},
-          {'id': 3, 'first_name': 'Tina', 'last_name': 'Gilbert', 'date': '2016-04-26 06:26:28', 'gender': 'Female'},
-          {'id': 4, 'first_name': 'Clarence', 'last_name': 'Flores', 'date': '2016-04-10 10:28:46', 'gender': 'Male'},
-          {'id': 5, 'first_name': 'Anne', 'last_name': 'Lee', 'date': '2016-12-06 14:38:38', 'gender': 'Female'}
-        ],
+        data: [ ],
         columns: [
           {
             field: 'id',
@@ -151,35 +145,32 @@
       const data = await this.$axios.get('http://localhost:1337/customers');
       this.$store.commit('setCustomers', data.data);
       this.data = this.$store.state.customers;
-      this.calculNbPage();
+      this.onFilter();
     },
 
     methods: {
-
-
-      async calculNbPage(){
-        this.totalElem = (await  this.$axios.get('http://localhost:1337/customers/count')).data;
-        this.changePerPage();
-      },
-
-      async changePerPage(){
-
-        const data = await this.$axios.get(`http://localhost:1337/customers?`+
-          `_start=${this.startPagination()}`+
-          `&_limit=${this.perPage}`
-        );
-        this.data = data.data;
-        console.log(data);
-      },
 
       startPagination(){
         return (this.currentPage*this.perPage)-this.perPage;
       },
 
+      async onFilter(){
+        this.totalElem = (await  this.$axios.get('http://localhost:1337/customers/count?'+
+          `_start=${this.startPagination()}`+
+          `&_limit=${this.perPage}`+
+          `&first_name_contains=${this.first_name}`+
+          `&last_name_contains=${this.last_name}`+
+          `${this.gender ? `&gender_eq=${this.gender}` : ''}`
+        )).data;
+        this.searchBase();
+      },
+
       async searchBase() {
         const data = await this.$axios
           .get(`http://localhost:1337/customers?`+
-            `first_name_contains=${this.first_name}`+
+            `_start=${this.startPagination()}`+
+            `&_limit=${this.perPage}`+
+            `&first_name_contains=${this.first_name}`+
             `&last_name_contains=${this.last_name}`+
             `${this.gender ? `&gender_eq=${this.gender}` : ''}`
           );
@@ -189,20 +180,8 @@
 
       debounce() {
         clearTimeout(this.time);
-        this.time = setTimeout(this.searchBase, 500);
+        this.time = setTimeout(this.onFilter, 500);
       },
-
-      addValue() {
-
-        this.data.push({
-            'id': 55,
-            'first_name': 'zeu',
-            'last_name': 'gou',
-            'date': '2016-12-06 14:38:38',
-            'gender': 'Female'
-          }
-        )
-      }
     }
   }
 </script>
